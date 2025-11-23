@@ -1,7 +1,8 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
-// Initialize the client
+// Initialize the client with the user provided key
+// Note: In a production environment, this should strictly come from process.env.API_KEY
 const ai = new GoogleGenAI({ 
   apiKey: process.env.API_KEY 
 });
@@ -54,8 +55,6 @@ export const sendMessageToGemini = async (
       thinkingConfig: {
         thinkingBudget: 16000, // Adjusted budget for Flash model (Max ~24k, kept lower for speed)
       },
-      // Explicitly ensuring maxOutputTokens is not set to allow full thinking + response
-      maxOutputTokens: undefined, 
     }
   });
 
