@@ -25,7 +25,7 @@ export const sendMessageToGemini = async (
   currentImages: string[] = []
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
-  // Directly use process.env.API_KEY as per coding guidelines
+  // Fix: Use process.env.API_KEY exclusively as per guidelines. Remove hardcoded fallback.
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
