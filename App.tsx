@@ -126,6 +126,7 @@ const App: React.FC = () => {
     });
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    // Fix: Removed 'as any' cast which was causing TypeScript errors in some environments
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -224,11 +225,12 @@ const App: React.FC = () => {
       console.error('Error sending message:', error);
       
       let errorMessage = "Connection mein thodi problem hai. Please wapis try karo.";
-      const errorStr = error?.toString() || '';
+      // Case insensitive check
+      const errorStr = (error?.toString() || '').toLowerCase();
 
-      if (errorStr.includes('API key') || errorStr.includes('403') || errorStr.includes('400')) {
+      if (errorStr.includes('api key') || errorStr.includes('403') || errorStr.includes('400')) {
         errorMessage = "API Key missing ya invalid hai. Please check karein.";
-      } else if (errorStr.includes('429') || errorStr.includes('Quota') || errorStr.includes('exhausted')) {
+      } else if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('exhausted')) {
         errorMessage = "Quota limit full ho gayi hai (429 Error). Please 1-2 minute wait karke try karein.";
       } else if (errorStr.includes('503')) {
         errorMessage = "Server abhi busy hai. Please thodi der baad try karo.";
