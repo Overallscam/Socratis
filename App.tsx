@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Image as ImageIcon, Loader2, BookOpen, X, Download } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2, BookOpen, X, Download, Camera } from 'lucide-react';
 import { Message, ChatState } from './types';
 import { sendMessageToGemini } from './services/geminiService';
 import MessageBubble from './components/MessageBubble';
@@ -12,7 +12,7 @@ const App: React.FC = () => {
       {
         id: 'welcome',
         role: 'model',
-        text: "Namaste! Main hoon Socratis. Accounts ke concepts samajhne mein help chahiye? \n\nKoi bhi question pucho ya photo upload karo. Journal entries, Ledger, ya Balance Sheet - saath mein solve karenge step-by-step!",
+        text: "Namaste! Main hoon Socratis. Accounts ke concepts samajhne mein help chahiye? \n\nKoi bhi question pucho, photo khicho, ya upload karo. Journal entries, Ledger, ya Balance Sheet - saath mein solve karenge step-by-step!",
         timestamp: Date.now(),
       }
     ],
@@ -22,6 +22,12 @@ const App: React.FC = () => {
 
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
+  // Camera State
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,6 +39,56 @@ const App: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [chatState.messages, chatState.isLoading]);
+
+  // Camera Logic
+  useEffect(() => {
+    let activeStream: MediaStream | null = null;
+
+    const startCamera = async () => {
+      if (isCameraOpen) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+          activeStream = stream;
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (err) {
+          console.error("Camera error", err);
+          setIsCameraOpen(false);
+          alert("Camera access nahi mila. Please permissions check karein.");
+        }
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      // Cleanup when component unmounts or camera closes
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
+      }
+      streamRef.current = null;
+    };
+  }, [isCameraOpen]);
+
+  const takePhoto = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0);
+        // High quality jpeg
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setSelectedImage(dataUrl);
+        setIsCameraOpen(false);
+      }
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -245,12 +301,22 @@ const App: React.FC = () => {
             
             <button
               type="button"
+              onClick={() => setIsCameraOpen(true)}
+              className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              title="Open Camera"
+            >
+              <Camera size={24} />
+            </button>
+
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
               title="Upload image"
             >
               <ImageIcon size={24} />
             </button>
+            
             <input
               type="file"
               ref={fileInputRef}
@@ -263,7 +329,7 @@ const App: React.FC = () => {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Question pucho ya problem upload karo..."
+              placeholder="Question pucho, photo lo, ya upload karo..."
               className="flex-1 bg-transparent border-none focus:ring-0 p-3 text-slate-800 placeholder:text-slate-400 min-h-[50px] max-h-[150px] resize-none overflow-y-auto"
               disabled={chatState.isLoading}
             />
@@ -289,6 +355,43 @@ const App: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Camera Modal Overlay */}
+      {isCameraOpen && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in duration-200">
+          <div className="relative flex-1 overflow-hidden bg-black">
+             <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted
+                className="absolute inset-0 w-full h-full object-cover"
+             />
+             <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
+               <p className="text-white text-center text-sm font-medium">Position problem within frame</p>
+             </div>
+          </div>
+          <div className="flex-none h-32 bg-black/90 flex items-center justify-around px-10 safe-area-bottom">
+             <button 
+                onClick={() => setIsCameraOpen(false)}
+                className="p-4 rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition-colors"
+             >
+               <X size={24} />
+             </button>
+             
+             <button 
+                onClick={takePhoto}
+                className="p-1 rounded-full border-[6px] border-white/30 hover:border-white/50 transition-colors"
+             >
+                <div className="w-16 h-16 bg-white rounded-full active:scale-90 transition-transform" />
+             </button>
+             
+             {/* Spacer to balance layout */}
+             <div className="w-14" /> 
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
