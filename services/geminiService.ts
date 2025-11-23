@@ -1,11 +1,23 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
+// Helper to safely get the API Key without crashing in browsers where 'process' is undefined
+const getApiKey = () => {
+  try {
+    // Check if process.env exists (Node.js/Build environments)
+    if (typeof process !== "undefined" && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore errors if process is not defined
+  }
+  // Fallback to the hardcoded key provided by the user
+  return "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
+};
+
 // Initialize the client
-// NOTE: We are using the provided API key as a fallback. 
-// In a production environment, it is recommended to use process.env.API_KEY exclusively.
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.API_KEY || "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU" 
+  apiKey: getApiKey() 
 });
 
 /**
