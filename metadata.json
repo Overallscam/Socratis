@@ -1,0 +1,8 @@
+{
+  "name": " Socratis Accounts Tutor",
+  "description": "A compassionate AI Accounts tutor that helps you solve commerce and accounting problems step-by-step in Hinglish.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
