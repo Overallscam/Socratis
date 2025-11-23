@@ -1,23 +1,9 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
-// Helper to safely get the API Key without crashing in browsers where 'process' is undefined
-const getApiKey = () => {
-  try {
-    // Check if process.env exists (Node.js/Build environments)
-    if (typeof process !== "undefined" && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-  } catch (e) {
-    // Ignore errors if process is not defined
-  }
-  // Fallback to the hardcoded key provided by the user
-  return "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
-};
-
 // Initialize the client
 const ai = new GoogleGenAI({ 
-  apiKey: getApiKey() 
+  apiKey: process.env.API_KEY 
 });
 
 /**
@@ -61,12 +47,12 @@ export const sendMessageToGemini = async (
   }));
 
   const chat = ai.chats.create({
-    model: ModelType.GEMINI_3_PRO,
+    model: ModelType.GEMINI_FLASH,
     history: previousHistory,
     config: {
       systemInstruction: SOCRATIC_SYSTEM_INSTRUCTION,
       thinkingConfig: {
-        thinkingBudget: 32768, // Max budget for deep reasoning
+        thinkingBudget: 16000, // Adjusted budget for Flash model (Max ~24k, kept lower for speed)
       },
       // Explicitly ensuring maxOutputTokens is not set to allow full thinking + response
       maxOutputTokens: undefined, 

@@ -223,7 +223,9 @@ const App: React.FC = () => {
 
       // Check for specific API Key related errors
       if (errorStr.includes('API key') || errorStr.includes('403') || errorStr.includes('400')) {
-        errorMessage = "API Key missing ya invalid hai. Please apni deployment settings check karein aur API Key add karein.";
+        errorMessage = "API Key missing ya invalid hai. Please check karein.";
+      } else if (errorStr.includes('429') || errorStr.includes('Quota') || errorStr.includes('exhausted')) {
+        errorMessage = "Quota limit full ho gayi hai (429 Error). Please 1-2 minute wait karke try karein.";
       } else if (errorStr.includes('503')) {
         errorMessage = "Server abhi busy hai. Please thodi der baad try karo.";
       }
@@ -255,7 +257,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             <div className="hidden sm:block">
               <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100">
-                Gemini 3.0 Thinking Mode
+                Gemini 2.5 Flash
               </span>
             </div>
             <button
@@ -377,7 +379,7 @@ const App: React.FC = () => {
             </button>
           </form>
           <div className="text-center mt-2">
-             <p className="text-[10px] text-slate-400">Powered by Gemini 3.0 Pro • Thinking Mode Enabled</p>
+             <p className="text-[10px] text-slate-400">Powered by Gemini 2.5 Flash • Thinking Mode Enabled</p>
           </div>
         </div>
       </footer>

@@ -14,7 +14,8 @@ export interface ChatState {
 }
 
 export enum ModelType {
-  GEMINI_3_PRO = 'gemini-3-pro-preview',
+  // Switched to Flash for better rate limits and reliability
+  GEMINI_FLASH = 'gemini-2.5-flash',
 }
 
 export const SOCRATIC_SYSTEM_INSTRUCTION = `
