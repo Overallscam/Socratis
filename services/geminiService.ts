@@ -27,7 +27,7 @@ export const sendMessageToGemini = async (
   
   // Robust API Key Retrieval
   // Default to the user's hardcoded key immediately
-  let apiKey = "AIzaSyAIMS08bdhTvmpNv0mINVC2yjT2RrAtdlg";
+  let apiKey = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
 
   // Attempt to override with environment variable if present and valid
   try {
