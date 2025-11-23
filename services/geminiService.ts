@@ -25,8 +25,20 @@ export const sendMessageToGemini = async (
   currentImages: string[] = []
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
-  // Fix: Use process.env.API_KEY exclusively as per guidelines. Remove hardcoded fallback.
-  const apiKey = process.env.API_KEY;
+  // Robust API Key Retrieval
+  // 1. Try standard process.env
+  // 2. Try window.process.env (in case of browser polyfill)
+  // 3. Fallback to hardcoded key (User provided)
+  let apiKey = process.env.API_KEY;
+
+  if (!apiKey && typeof window !== 'undefined') {
+    const win = window as any;
+    apiKey = win.process?.env?.API_KEY;
+  }
+
+  if (!apiKey) {
+    apiKey = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
+  }
 
   if (!apiKey) {
     throw new Error("API Key is missing. Please check your configuration.");
@@ -96,8 +108,13 @@ export const sendMessageToGemini = async (
   }
 
   // Use sendMessageStream for a better UX
+  // Note: For gemini-2.5-flash, passing content parts directly is supported
+  const messageContent = currentParts.length === 1 && currentParts[0].text 
+    ? currentParts[0].text 
+    : currentParts;
+
   const result = await chat.sendMessageStream({
-    message: currentParts.length === 1 && currentParts[0].text ? currentParts[0].text : currentParts
+    message: messageContent
   });
 
   // Generator to yield chunks as they arrive
