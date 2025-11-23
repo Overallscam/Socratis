@@ -61,8 +61,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       }
 
       // 2. If it's normal text, split into paragraphs to find tables
-      // We look for patterns that look like tables (lines starting with |)
-      const parts = block.split(/(\n\|.*\|\n\|[-:| ]+\|\n(?:\|.*\|\n?)*)/g);
+      // Improved regex to catch tables at start of string or after newline
+      // Captures standard markdown tables: Header|Header \n ---|--- \n Cell|Cell
+      const parts = block.split(/((?:^|\n)\|[^\n]+\|[\r\n]+\|[-:| ]+\|[\r\n]+(?:\|[^\n]+\|[\r\n]*)*)/g);
 
       return parts.map((part, partIndex) => {
         // Check if this part is a table

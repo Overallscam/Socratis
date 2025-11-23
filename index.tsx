@@ -3,8 +3,11 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 // Polyfill for process.env to prevent crashes in browser environments
-if (typeof window !== 'undefined' && !(window as any).process) {
-  (window as any).process = { env: {} };
+if (typeof window !== 'undefined') {
+  const win = window as any;
+  if (!win.process) {
+    win.process = { env: {} };
+  }
 }
 
 const rootElement = document.getElementById('root');
