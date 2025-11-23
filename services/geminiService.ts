@@ -17,43 +17,53 @@ const getMimeType = (dataUrl: string): string => {
 };
 
 /**
- * Sends a message to the Gemini model with history and optional images
+ * Helper to safely get the API Key
+ * Prioritizes process.env, falls back to the user-provided key
+ */
+const getApiKey = (): string | undefined => {
+  // Safe check for process.env to avoid ReferenceError in some browsers
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+  // Fallback to the user's specific key to ensure it works on Netlify/Local
+  return "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
+};
+
+/**
+ * Sends a message to the Gemini model with history and optional image
  */
 export const sendMessageToGemini = async (
   history: Message[],
   currentText: string,
-  currentImages: string[] = []
+  currentImage?: string
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
-  // Use process.env.API_KEY as per guidelines
+  const apiKey = getApiKey();
+
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please check your configuration.");
+  }
+
+  // Initialize inside the function to avoid module-level crashes
   const ai = new GoogleGenAI({ 
-    apiKey: process.env.API_KEY
+    apiKey: apiKey
   });
   
   // Construct the history for the chat
-  const previousHistory: Content[] = history.map(msg => {
-    const parts: Part[] = [];
-    
-    // Add existing images from history
-    if (msg.images && msg.images.length > 0) {
-      msg.images.forEach(img => {
-        parts.push({
-          inlineData: {
-            mimeType: getMimeType(img),
-            data: cleanBase64(img)
-          }
-        });
-      });
-    }
-    
-    // Add text part
-    parts.push({ text: msg.text });
-
-    return {
-      role: msg.role,
-      parts: parts
-    };
-  });
+  const previousHistory: Content[] = history.map(msg => ({
+    role: msg.role,
+    parts: msg.image 
+      ? [
+          {
+             inlineData: {
+               mimeType: getMimeType(msg.image),
+               data: cleanBase64(msg.image)
+             }
+          },
+          { text: msg.text }
+        ]
+      : [{ text: msg.text }]
+  }));
 
   const chat = ai.chats.create({
     model: ModelType.GEMINI_FLASH,
@@ -67,35 +77,26 @@ export const sendMessageToGemini = async (
   });
 
   // Prepare the current message parts
-  const currentParts: Part[] = [];
+  const parts: Part[] = [];
   
-  // Add new images
-  if (currentImages && currentImages.length > 0) {
-    currentImages.forEach(img => {
-      currentParts.push({
-        inlineData: {
-          mimeType: getMimeType(img),
-          data: cleanBase64(img)
-        }
-      });
+  if (currentImage) {
+    parts.push({
+      inlineData: {
+        mimeType: getMimeType(currentImage),
+        data: cleanBase64(currentImage)
+      }
     });
   }
   
   if (currentText) {
-    currentParts.push({ text: currentText });
-  } else if (currentParts.length === 0) {
-    // If no text and no images (shouldn't happen due to UI checks, but safe fallback)
-    currentParts.push({ text: "Please help me with this." }); 
+    parts.push({ text: currentText });
+  } else if (!currentImage) {
+    parts.push({ text: "Please help me with this." }); 
   }
 
   // Use sendMessageStream for a better UX
-  // Note: For gemini-2.5-flash, passing content parts directly is supported
-  const messageContent = currentParts.length === 1 && currentParts[0].text 
-    ? currentParts[0].text 
-    : currentParts;
-
   const result = await chat.sendMessageStream({
-    message: messageContent
+    message: parts.length === 1 && parts[0].text ? parts[0].text : parts
   });
 
   // Generator to yield chunks as they arrive
