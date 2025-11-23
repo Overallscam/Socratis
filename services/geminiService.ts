@@ -1,7 +1,7 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
-// Initialize the client with the user provided key
+// Initialize the client with the environment variable
 const ai = new GoogleGenAI({ 
   apiKey: process.env.API_KEY
 });
@@ -52,7 +52,7 @@ export const sendMessageToGemini = async (
     config: {
       systemInstruction: SOCRATIC_SYSTEM_INSTRUCTION,
       thinkingConfig: {
-        thinkingBudget: 16000, // Adjusted budget for Flash model (Max ~24k, kept lower for speed)
+        thinkingBudget: 16000, // Adjusted budget for Flash model
       },
     }
   });
