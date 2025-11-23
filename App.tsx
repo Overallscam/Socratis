@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Image as ImageIcon, Loader2, BookOpen, X, Download, Camera, Share2 } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2, BookOpen, X, Download, Camera, Share2, Plus } from 'lucide-react';
 import { Message, ChatState } from './types';
 import { sendMessageToGemini } from './services/geminiService';
 import MessageBubble from './components/MessageBubble';
@@ -20,7 +20,8 @@ const App: React.FC = () => {
   });
 
   const [inputText, setInputText] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // Changed from single image string to array of strings
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   
   // Camera State
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -83,28 +84,33 @@ const App: React.FC = () => {
         ctx.drawImage(videoRef.current, 0, 0);
         // High quality jpeg
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        setSelectedImage(dataUrl);
+        // Append new photo to existing images
+        setSelectedImages(prev => [...prev, dataUrl]);
         setIsCameraOpen(false);
       }
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setSelectedImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setSelectedImages(prev => [...prev, event.target!.result as string]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     }
+    // Reset input so same files can be selected again if needed
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const clearImage = () => {
-    setSelectedImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeImage = (indexToRemove: number) => {
+    setSelectedImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleExportChat = () => {
@@ -119,15 +125,16 @@ const App: React.FC = () => {
       content += `[${time}] ${role}:\n${msg.text}\n\n-------------------------------------------\n\n`;
     });
 
+    // Use global Blob constructor directly
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `socratis-notes-${timestamp}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(url);
   };
 
   const handleShare = async () => {
@@ -152,13 +159,13 @@ const App: React.FC = () => {
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    if ((!inputText.trim() && !selectedImage) || chatState.isLoading) return;
+    if ((!inputText.trim() && selectedImages.length === 0) || chatState.isLoading) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       text: inputText,
-      image: selectedImage || undefined,
+      images: selectedImages.length > 0 ? [...selectedImages] : undefined,
       timestamp: Date.now(),
     };
 
@@ -172,15 +179,14 @@ const App: React.FC = () => {
 
     // Clear input immediately
     setInputText('');
-    setSelectedImage(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setSelectedImages([]);
 
     try {
       // Stream response
       const stream = await sendMessageToGemini(
-        chatState.messages, // Pass CURRENT history before the new message (service handles appending)
+        chatState.messages, // Pass CURRENT history
         newMessage.text,
-        newMessage.image
+        newMessage.images // Pass array of images
       );
 
       // Create a placeholder message for the bot
@@ -218,16 +224,18 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       
-      let errorMessage = "Connection mein thodi problem hai. Please wapis try karo.";
-      const errorStr = error?.toString() || '';
+      let errorMessage = "Connection mein thodi problem hai.";
+      const errorStr = (error?.toString() || '').toLowerCase();
+      const rawError = error?.message || error?.toString();
 
-      // Check for specific API Key related errors
-      if (errorStr.includes('API key') || errorStr.includes('403') || errorStr.includes('400')) {
-        errorMessage = "API Key missing ya invalid hai. Please check karein.";
-      } else if (errorStr.includes('429') || errorStr.includes('Quota') || errorStr.includes('exhausted')) {
+      if (errorStr.includes('api key') || errorStr.includes('403') || errorStr.includes('400')) {
+        errorMessage = `API Key Error: ${rawError}. Please check key settings.`;
+      } else if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('exhausted')) {
         errorMessage = "Quota limit full ho gayi hai (429 Error). Please 1-2 minute wait karke try karein.";
       } else if (errorStr.includes('503')) {
         errorMessage = "Server abhi busy hai. Please thodi der baad try karo.";
+      } else {
+        errorMessage = `Error: ${rawError}`;
       }
 
       setChatState(prev => ({
@@ -236,7 +244,7 @@ const App: React.FC = () => {
         error: errorMessage,
       }));
     }
-  }, [inputText, selectedImage, chatState.isLoading, chatState.messages]);
+  }, [inputText, selectedImages, chatState.isLoading, chatState.messages]);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 text-slate-800 font-sans">
@@ -255,16 +263,10 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block">
-              <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100">
-                Gemini 2.5 Flash
-              </span>
-            </div>
             <button
               onClick={handleShare}
               className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
               title="Share App"
-              aria-label="Share App"
             >
               <Share2 size={20} />
             </button>
@@ -272,7 +274,6 @@ const App: React.FC = () => {
               onClick={handleExportChat}
               className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
               title="Export Notes"
-              aria-label="Export Chat Notes"
             >
               <Download size={20} />
             </button>
@@ -289,7 +290,6 @@ const App: React.FC = () => {
           
           {chatState.isLoading && (
             <div className="flex justify-start mb-6 w-full">
-               {/* Check if the last message has content, if not (just started), show thinking */}
                {chatState.messages[chatState.messages.length - 1].role === 'model' && chatState.messages[chatState.messages.length - 1].text === '' ? (
                  <ThinkingIndicator />
                ) : null}
@@ -309,19 +309,25 @@ const App: React.FC = () => {
       {/* Input Area */}
       <footer className="flex-none bg-white border-t border-slate-200 p-4 sticky bottom-0 z-20">
         <div className="max-w-3xl mx-auto">
-          {selectedImage && (
-            <div className="mb-2 relative inline-block">
-              <img 
-                src={selectedImage} 
-                alt="Preview" 
-                className="h-20 w-auto rounded-lg border border-slate-200 shadow-sm"
-              />
-              <button 
-                onClick={clearImage}
-                className="absolute -top-2 -right-2 bg-white rounded-full p-1 border border-slate-200 shadow-md hover:bg-slate-50 text-slate-500"
-              >
-                <X size={14} />
-              </button>
+          
+          {/* Multiple Image Preview */}
+          {selectedImages.length > 0 && (
+            <div className="mb-3 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {selectedImages.map((img, idx) => (
+                <div key={idx} className="relative flex-none">
+                  <img 
+                    src={img} 
+                    alt={`Preview ${idx}`} 
+                    className="h-20 w-auto rounded-lg border border-slate-200 shadow-sm"
+                  />
+                  <button 
+                    onClick={() => removeImage(idx)}
+                    className="absolute -top-2 -right-2 bg-white rounded-full p-1 border border-slate-200 shadow-md hover:bg-red-50 hover:text-red-500 text-slate-500 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           
@@ -340,9 +346,15 @@ const App: React.FC = () => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-              title="Upload image"
+              title="Upload images"
             >
-              <ImageIcon size={24} />
+              {selectedImages.length > 0 ? (
+                <div className="relative">
+                  <Plus size={24} className="text-indigo-600" />
+                </div>
+              ) : (
+                <ImageIcon size={24} />
+              )}
             </button>
             
             <input
@@ -350,6 +362,7 @@ const App: React.FC = () => {
               ref={fileInputRef}
               onChange={handleFileSelect}
               accept="image/*"
+              multiple // Allow multiple file selection
               className="hidden"
             />
 
@@ -357,16 +370,16 @@ const App: React.FC = () => {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Question pucho, photo lo, ya upload karo..."
+              placeholder={selectedImages.length > 0 ? "Add more photos or ask a question..." : "Question pucho, photo lo, ya upload karo..."}
               className="flex-1 bg-transparent border-none focus:ring-0 p-3 text-slate-800 placeholder:text-slate-400 min-h-[50px] max-h-[150px] resize-none overflow-y-auto"
               disabled={chatState.isLoading}
             />
 
             <button
               type="submit"
-              disabled={(!inputText.trim() && !selectedImage) || chatState.isLoading}
+              disabled={(!inputText.trim() && selectedImages.length === 0) || chatState.isLoading}
               className={`p-3 rounded-xl flex items-center justify-center transition-all ${
-                (!inputText.trim() && !selectedImage) || chatState.isLoading
+                (!inputText.trim() && selectedImages.length === 0) || chatState.isLoading
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg'
               }`}
@@ -378,9 +391,6 @@ const App: React.FC = () => {
               )}
             </button>
           </form>
-          <div className="text-center mt-2">
-             <p className="text-[10px] text-slate-400">Powered by Gemini 2.5 Flash • Thinking Mode Enabled</p>
-          </div>
         </div>
       </footer>
 
@@ -396,7 +406,7 @@ const App: React.FC = () => {
                 className="absolute inset-0 w-full h-full object-cover"
              />
              <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
-               <p className="text-white text-center text-sm font-medium">Position problem within frame</p>
+               <p className="text-white text-center text-sm font-medium">Capture document or problem</p>
              </div>
           </div>
           <div className="flex-none h-32 bg-black/90 flex items-center justify-around px-10 safe-area-bottom">
@@ -414,7 +424,7 @@ const App: React.FC = () => {
                 <div className="w-16 h-16 bg-white rounded-full active:scale-90 transition-transform" />
              </button>
              
-             {/* Spacer to balance layout */}
+             {/* Spacer */}
              <div className="w-14" /> 
           </div>
         </div>
