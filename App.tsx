@@ -126,8 +126,7 @@ const App: React.FC = () => {
     });
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    // Fix: Cast to any to resolve TS error: Argument of type 'unknown' is not assignable to parameter of type 'Blob'
-    const url = URL.createObjectURL(blob as any);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `socratis-notes-${timestamp}.txt`;

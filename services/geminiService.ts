@@ -26,16 +26,25 @@ export const sendMessageToGemini = async (
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
   // Robust API Key Retrieval
-  // 1. Try standard process.env
-  // 2. Try window.process.env (in case of browser polyfill)
-  // 3. Fallback to hardcoded key (User provided)
-  let apiKey = process.env.API_KEY;
+  let apiKey: string | undefined = undefined;
 
+  // 1. Try standard process.env (Wrapped in try-catch to prevent ReferenceError crashes)
+  try {
+    if (process.env.API_KEY) {
+      apiKey = process.env.API_KEY;
+    }
+  } catch (e) {
+    // process is not defined in this environment, ignore
+  }
+
+  // 2. Try window.process.env (in case of browser polyfill from index.tsx)
   if (!apiKey && typeof window !== 'undefined') {
     const win = window as any;
     apiKey = win.process?.env?.API_KEY;
   }
 
+  // 3. Fallback to hardcoded key (User provided)
+  // This ensures the app works even if environment variables fail
   if (!apiKey) {
     apiKey = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
   }
