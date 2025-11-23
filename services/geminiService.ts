@@ -25,7 +25,7 @@ export const sendMessageToGemini = async (
   currentImages: string[] = []
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
-  // Use API Key from environment variable
+  // Use process.env.API_KEY as per guidelines
   const ai = new GoogleGenAI({ 
     apiKey: process.env.API_KEY
   });
