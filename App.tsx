@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Image as ImageIcon, Loader2, BookOpen, X, Download, Camera } from 'lucide-react';
+import { Send, Image as ImageIcon, Loader2, BookOpen, X, Download, Camera, Share2 } from 'lucide-react';
 import { Message, ChatState } from './types';
 import { sendMessageToGemini } from './services/geminiService';
 import MessageBubble from './components/MessageBubble';
@@ -131,6 +130,25 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Socratis Accounts Tutor',
+      text: 'Study Accounts with me using Socratis AI!',
+      url: 'https://socratisapp.netlify.app/',
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('App link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
+
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
 
@@ -240,6 +258,14 @@ const App: React.FC = () => {
                 Gemini 3.0 Thinking Mode
               </span>
             </div>
+            <button
+              onClick={handleShare}
+              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Share App"
+              aria-label="Share App"
+            >
+              <Share2 size={20} />
+            </button>
             <button
               onClick={handleExportChat}
               className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
