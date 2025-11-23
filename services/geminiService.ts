@@ -2,9 +2,8 @@ import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
 // Initialize the client with the user provided key
-// Note: In a production environment, this should strictly come from process.env.API_KEY
 const ai = new GoogleGenAI({ 
-  apiKey: process.env.API_KEY 
+  apiKey: process.env.API_KEY
 });
 
 /**
