@@ -260,11 +260,6 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block">
-              <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100">
-                Gemini 2.5 Flash
-              </span>
-            </div>
             <button
               onClick={handleShare}
               className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -393,9 +388,6 @@ const App: React.FC = () => {
               )}
             </button>
           </form>
-          <div className="text-center mt-2">
-             <p className="text-[10px] text-slate-400">Powered by Gemini 2.5 Flash • Thinking Mode Enabled</p>
-          </div>
         </div>
       </footer>
 

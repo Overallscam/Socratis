@@ -26,30 +26,28 @@ export const sendMessageToGemini = async (
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
   // Robust API Key Retrieval
-  let apiKey: string | undefined = undefined;
+  // Default to the user's hardcoded key immediately
+  let apiKey = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
 
-  // 1. Try standard process.env (Wrapped in try-catch to prevent ReferenceError crashes)
+  // Attempt to override with environment variable if present and valid
   try {
-    if (process.env.API_KEY) {
+    if (process.env.API_KEY && process.env.API_KEY.trim() !== '') {
       apiKey = process.env.API_KEY;
     }
   } catch (e) {
-    // process is not defined in this environment, ignore
+    // process is not defined, ignore and use default
   }
 
-  // 2. Try window.process.env (in case of browser polyfill from index.tsx)
-  if (!apiKey && typeof window !== 'undefined') {
+  // Double check window polyfill just in case
+  if (typeof window !== 'undefined') {
     const win = window as any;
-    apiKey = win.process?.env?.API_KEY;
-  }
-
-  // 3. Fallback to hardcoded key (User provided)
-  // This ensures the app works even if environment variables fail
-  if (!apiKey) {
-    apiKey = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
+    if (win.process?.env?.API_KEY && win.process.env.API_KEY.trim() !== '') {
+      apiKey = win.process.env.API_KEY;
+    }
   }
 
   if (!apiKey) {
+    // This should theoretically never happen due to the default let declaration above
     throw new Error("API Key is missing. Please check your configuration.");
   }
 
