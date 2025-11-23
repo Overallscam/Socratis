@@ -1,9 +1,6 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
-// Fix: Use process.env.API_KEY exclusively as per guidelines
-const API_KEY = process.env.API_KEY;
-
 /**
  * Converts a base64 string (data URL) to a clean base64 string for the API
  */
@@ -20,6 +17,19 @@ const getMimeType = (dataUrl: string): string => {
 };
 
 /**
+ * Helper to safely get the API Key
+ * Prioritizes process.env, falls back to the user-provided key
+ */
+const getApiKey = (): string | undefined => {
+  // Safe check for process.env to avoid ReferenceError in some browsers
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+  // Fallback to the user's specific key to ensure it works on Netlify/Local
+  return "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
+};
+
+/**
  * Sends a message to the Gemini model with history and optional image
  */
 export const sendMessageToGemini = async (
@@ -28,13 +38,15 @@ export const sendMessageToGemini = async (
   currentImage?: string
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
-  if (!API_KEY) {
+  const apiKey = getApiKey();
+
+  if (!apiKey) {
     throw new Error("API Key is missing. Please check your configuration.");
   }
 
   // Initialize inside the function to avoid module-level crashes
   const ai = new GoogleGenAI({ 
-    apiKey: API_KEY
+    apiKey: apiKey
   });
   
   // Construct the history for the chat
