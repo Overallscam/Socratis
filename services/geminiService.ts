@@ -1,10 +1,8 @@
 import { GoogleGenAI, Content, Part } from "@google/genai";
 import { Message, ModelType, SOCRATIC_SYSTEM_INSTRUCTION } from "../types";
 
-// Initialize the client with the environment variable
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.API_KEY
-});
+// Fix: Use process.env.API_KEY exclusively as per guidelines
+const API_KEY = process.env.API_KEY;
 
 /**
  * Converts a base64 string (data URL) to a clean base64 string for the API
@@ -29,6 +27,15 @@ export const sendMessageToGemini = async (
   currentText: string,
   currentImage?: string
 ): Promise<AsyncGenerator<string, void, unknown>> => {
+  
+  if (!API_KEY) {
+    throw new Error("API Key is missing. Please check your configuration.");
+  }
+
+  // Initialize inside the function to avoid module-level crashes
+  const ai = new GoogleGenAI({ 
+    apiKey: API_KEY
+  });
   
   // Construct the history for the chat
   const previousHistory: Content[] = history.map(msg => ({
