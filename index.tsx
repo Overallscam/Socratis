@@ -2,26 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Polyfill for process.env to prevent crashes in browser environments
-// CRITICAL: Injecting the User's API Key here so it is available globally
-if (typeof window !== 'undefined') {
-  const win = window as any;
-  if (!win.process) {
-    win.process = { 
-      env: {
-        API_KEY: "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU"
-      } 
-    };
-  } else if (!win.process.env) {
-     win.process.env = {
-        API_KEY: "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU"
-     };
-  } else {
-    // Ensure key exists even if process.env exists
-    win.process.env.API_KEY = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
-  }
-}
-
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");

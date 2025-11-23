@@ -25,35 +25,9 @@ export const sendMessageToGemini = async (
   currentImages: string[] = []
 ): Promise<AsyncGenerator<string, void, unknown>> => {
   
-  // Robust API Key Retrieval
-  // Default to the user's hardcoded key immediately
-  let apiKey = "AIzaSyA9sVYVJDLiMk57790CSw3syh0LM2nKZxU";
-
-  // Attempt to override with environment variable if present and valid
-  try {
-    if (process.env.API_KEY && process.env.API_KEY.trim() !== '') {
-      apiKey = process.env.API_KEY;
-    }
-  } catch (e) {
-    // process is not defined, ignore and use default
-  }
-
-  // Double check window polyfill just in case
-  if (typeof window !== 'undefined') {
-    const win = window as any;
-    if (win.process?.env?.API_KEY && win.process.env.API_KEY.trim() !== '') {
-      apiKey = win.process.env.API_KEY;
-    }
-  }
-
-  if (!apiKey) {
-    // This should theoretically never happen due to the default let declaration above
-    throw new Error("API Key is missing. Please check your configuration.");
-  }
-
-  // Initialize inside the function to avoid module-level crashes
+  // Use API Key from environment variable
   const ai = new GoogleGenAI({ 
-    apiKey: apiKey
+    apiKey: process.env.API_KEY
   });
   
   // Construct the history for the chat

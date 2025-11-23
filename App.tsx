@@ -125,15 +125,16 @@ const App: React.FC = () => {
       content += `[${time}] ${role}:\n${msg.text}\n\n-------------------------------------------\n\n`;
     });
 
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    // Explicitly use window.Blob to prevent any type shadowing
+    const blob = new window.Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `socratis-notes-${timestamp}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(url);
   };
 
   const handleShare = async () => {
@@ -223,16 +224,18 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       
-      let errorMessage = "Connection mein thodi problem hai. Please wapis try karo.";
-      // Case insensitive check
+      let errorMessage = "Connection mein thodi problem hai.";
       const errorStr = (error?.toString() || '').toLowerCase();
+      const rawError = error?.message || error?.toString();
 
       if (errorStr.includes('api key') || errorStr.includes('403') || errorStr.includes('400')) {
-        errorMessage = "API Key missing ya invalid hai. Please check karein.";
+        errorMessage = `API Key Error: ${rawError}. Please check key settings.`;
       } else if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('exhausted')) {
         errorMessage = "Quota limit full ho gayi hai (429 Error). Please 1-2 minute wait karke try karein.";
       } else if (errorStr.includes('503')) {
         errorMessage = "Server abhi busy hai. Please thodi der baad try karo.";
+      } else {
+        errorMessage = `Error: ${rawError}`;
       }
 
       setChatState(prev => ({
